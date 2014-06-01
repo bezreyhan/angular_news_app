@@ -25,6 +25,7 @@
     <![endif]-->
 
     <!-- Add your site or application content here -->
+    <div ng-include="'views/nav.html'"></div>
     <div class="container" ng-view=""></div>
 
     <!-- Google Analytics: change UA-XXXXX-X to be your site's ID -->
@@ -62,7 +63,14 @@
         
         <script src="scripts/app.js"></script>
         <script src="scripts/controllers/posts.js"></script>
+        <script type="text/javascript" src="scripts/controllers/postview.js"></script>
+        <script type="text/javascript" src="scripts/controllers/nav.js"></script>
+        <script type="text/javascript" src="scripts/controllers/auth.js"></script>
+        <script type="text/javascript" src="scripts/controllers/profile.js"></script>
+        <script type="text/javascript" src="scripts/services/auth.js"></script>
         <script type="text/javascript" src="scripts/services/post.js"></script>
+        <script type="text/javascript" src="scripts/services/user.js"></script>
+        <script type="text/javascript" src="scripts/filters/url.js"></script>
 
         <!-- endbuild -->
 </body>

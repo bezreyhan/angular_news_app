@@ -33,10 +33,16 @@ function ($firebase, FIREBASE_URL, User) {
         var post = Post.find(postId);
 
         post.$on('loaded', function () {
+
           var user = User.findByUsername(post.owner);
+          var commentIds = posts.$child(postId).$child('comments').$getIndex();
+          var comments = getComments(commentIds, postId);
 
           posts.$remove(postId).then(function () {
             user.$child('posts').$remove(postId);
+
+            removeCommentsFromUsers(comments);
+
           });
         });
       }
@@ -62,8 +68,99 @@ function ($firebase, FIREBASE_URL, User) {
           user.$child('comments').$remove(commentId);
         });
       }
+    },
+    upVote: function (postId) {
+      if (User.signedIn()) {
+        var user = User.getCurrent();
+        var post = posts.$child(postId);
+
+        post.$child('upvotes').$child(user.username).$set(user.username).then(function () {
+          user.$child('upvotes').$child(postId).$set(postId);
+          post.$child('downvotes').$remove(user.username);
+          user.$child('downvotes').$remove(postId);
+
+          post.$child('score').$transaction(function (score) {
+            if (!score) {
+              return 1;
+            }else {
+              return score + 1;
+            }
+          });
+        });
+      }
+    },
+    downVote: function (postId) {
+      if (User.signedIn()) {
+        var user = User.getCurrent();
+        var post = posts.$child(postId);
+
+        post.$child('downvotes').$child(user.username).$set(user.username).then(function () {
+          user.$child('downvotes').$child(postId).$set(postId);
+          post.$child('upvotes').$remove(user.username);
+          user.$child('upvotes').$remove(postId);
+
+          post.$child('score').$transaction(function (score) {
+            if (score === undefined || score === null) {
+              return -1;
+            }else {
+              return score - 1;
+            }
+          });
+        });
+      }
+    },
+    clearVote: function (postId, upVoted) {
+      if (User.signedIn()) {
+        var user = User.getCurrent();
+        var username = user.username;
+        var post = posts.$child(postId);
+
+        post.$child('upvotes').$remove(username);
+        post.$child('downvotes').$remove(username);
+        user.$child('upvotes').$remove(postId);
+        user.$child('downvotes').$remove(postId);
+        post.$child('score').$transaction(function (score) {
+          if (upVoted) {
+            return score - 1;
+          }else {
+            return score + 1;
+          }
+        });
+      }
+    },
+    upVoted: function (post) {
+      if (User.signedIn() && post.upvotes) {
+        // console.log('user signed in and post has upvotes');
+        // console.log(post.upvotes.hasOwnProperty(User.getCurrent().username));
+        return post.upvotes.hasOwnProperty(User.getCurrent().username);
+      }
+    },
+    downVoted: function (post) {
+      if (User.signedIn() && post.downvotes) {
+        return post.downvotes.hasOwnProperty(User.getCurrent().username);
+      }
     }
   };
+
+  function getComments(commentIds, postId) {
+    var comments = [];
+    for (var i=0;i<commentIds.length;i++) {
+      var commentId = commentIds[i];
+      var comment = posts.$child(postId).$child("comments").$child(commentId);
+
+      comments.push([commentId, comment.username]);
+    }
+    return comments;
+  }
+
+  function removeCommentsFromUsers (comments) {
+    for (var i=0; i<comments.length; i++) {
+      var commentId = comments[i][0];
+      var commentOwnerUsername = comments[i][1];
+      var commentOwner = User.findByUsername(commentOwnerUsername);
+      commentOwner.$child('comments').$remove(commentId);
+    }
+  }
  
   return Post;
 });
